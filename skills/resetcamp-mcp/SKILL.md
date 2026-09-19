@@ -4,8 +4,9 @@ description: >-
   Publica e edita conteúdo no ResetCamp pelo MCP do criador: comunidades,
   canais, posts com títulos e negrito, comentários, cursos e mídia por URL
   pública. Use quando o pedido for criar, atualizar, listar ou apagar um post,
-  artigo, comentário ou curso na comunidade, ou quando mencionar o MCP do
-  ResetCamp, posts_create, posts_update, channels_list ou a ponte mcp-bridge.
+  artigo, comentário ou curso na comunidade, instalar ou ligar o MCP do
+  ResetCamp, ou quando mencionarem posts_create, posts_update, channels_list
+  ou a ponte mcp-bridge.
 ---
 
 # MCP do ResetCamp
@@ -15,6 +16,34 @@ O agente atua **em nome do criador** cujo token está no servidor. Só vê e esc
 Antes de cada chamada, lê o schema vivo da tool (`GetDynamicTools` / `tools/list`). Os nomes e os campos obrigatórios abaixo são o contrato; o schema ganha se divergir. `additionalProperties` é `false`: um campo a mais faz a chamada falhar.
 
 Se o namespace estiver `error` ou `needsAuth`, autentica com `mcp_auth` e lista as tools de novo. Não contornes o MCP com SQL, server actions ou a API HTTP.
+
+## Instalar o MCP
+
+Faz isto só quando o utilizador pedir para instalar, ligar ou configurar o MCP do ResetCamp, ou quando as tools não estiverem disponíveis. Se um servidor `resetcamp` já responder a `tools/list`, não instales outro.
+
+1. Pede o token de criador. Ele começa por `rc_live_` e só aparece uma vez em Definições → Chaves de API & Agentes MCP. Não inventes um token. Não o commits, não o escrevas no chat por extenso, e não o ponhas num ficheiro versionado.
+2. O host é a origem dessa página, por exemplo `https://dev.resetcamp.io`. Não uses localhost salvo se o utilizador estiver a desenvolver o monorepo.
+3. Precisas de `bun` no PATH.
+4. A ponte é o ficheiro `scripts/mcp-bridge.ts` ao lado deste `SKILL.md`. Se não estiver aí, usa `scripts/mcp-bridge.ts` na raiz do monorepo ResetCamp, se existir. Resolve o caminho absoluto.
+5. Na pasta que contém esse `scripts/`, corre `bun install` uma vez, para existir `@modelcontextprotocol/sdk`.
+6. Junta o servidor ao `mcp.json` sem apagar os outros. Projeto: `.cursor/mcp.json`. Em todo o Cursor: `~/.cursor/mcp.json`. No Claude Desktop: `~/Library/Application Support/Claude/claude_desktop_config.json` no macOS.
+
+```json
+{
+  "mcpServers": {
+    "resetcamp": {
+      "command": "bun",
+      "args": ["run", "/CAMINHO/ABSOLUTO/scripts/mcp-bridge.ts"],
+      "env": {
+        "RESETCAMP_API_URL": "https://dev.resetcamp.io",
+        "RESETCAMP_TOKEN": "rc_live_..."
+      }
+    }
+  }
+}
+```
+
+7. Diz ao utilizador para recarregar os servidores MCP no Cursor. Depois confirma com `tools/list`. Se a descoberta falhar, chama `mcp_auth` e lista de novo.
 
 ## Antes de escrever
 
