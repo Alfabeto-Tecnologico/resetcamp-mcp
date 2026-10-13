@@ -1,6 +1,6 @@
 # ResetCamp MCP
 
-Skill para agentes publicarem e editarem conteúdo no ResetCamp pelo MCP do criador: comunidades, canais, posts com títulos e negrito, comentários, cursos e mídia por URL pública.
+Skill para agentes publicarem e editarem conteúdo no ResetCamp pelo MCP do criador: comunidades, canais, posts em rascunho ou publicados (emoji, negrito, links, imagem e vídeo no corpo), comentários, cursos e mídia (imagem enviada pelo MCP ou por URL pública). Precisa do servidor MCP 1.1.0 ou mais novo.
 
 ```bash
 npx skills add Alfabeto-Tecnologico/resetcamp-mcp
