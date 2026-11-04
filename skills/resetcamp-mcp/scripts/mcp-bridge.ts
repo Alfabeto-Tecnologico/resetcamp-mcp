@@ -9,6 +9,8 @@ export interface BridgeConfig {
   apiUrl: string;
   token: string;
   mcpPath: string;
+  domains?: string;
+  readOnly?: boolean;
 }
 
 export interface SseEvent {
@@ -58,10 +60,19 @@ export function validateBridgeConfig(
   const cleanPath = rawMcpPath.replace(/^\/+/, "").replace(/\/+$/, "");
   const mcpPath = cleanPath.length > 0 ? `/${cleanPath}` : "/api/mcp";
 
+  const domains = env.RESETCAMP_MCP_DOMAINS?.trim() || undefined;
+  const rawReadOnly = env.RESETCAMP_MCP_READ_ONLY?.trim().toLowerCase();
+  const readOnly =
+    rawReadOnly === "true" || rawReadOnly === "1" || rawReadOnly === "yes"
+      ? true
+      : undefined;
+
   return {
     apiUrl,
     token: rawToken,
     mcpPath,
+    ...(domains ? { domains } : {}),
+    ...(readOnly ? { readOnly } : {}),
   };
 }
 
@@ -112,14 +123,28 @@ const RETRYABLE_HTTP_STATUS = new Set([408, 429, 500, 502, 503, 504]);
 const POST_ATTEMPTS = 3;
 
 const READ_ONLY_TOOLS = new Set([
+  "mcp_telemetry_get",
   "communities_list",
   "communities_get",
+  "community_overview_360",
   "channels_list",
   "posts_list",
   "posts_get",
+  "post_engagement_360",
   "comments_list",
   "courses_list",
   "courses_get",
+  "course_diagnostic_360",
+  "events_list",
+  "events_get",
+  "members_list",
+  "member_profile_360",
+  "moderation_reports_list",
+  "waitlist_list",
+  "plans_list",
+  "plans_check_buyability",
+  "subscriptions_summary_360",
+  "coupons_list",
 ]);
 
 export function isMessageSafeToRetry(message: JSONRPCMessage): boolean {
@@ -131,6 +156,7 @@ export function isMessageSafeToRetry(message: JSONRPCMessage): boolean {
     message.method === "ping" ||
     message.method === "tools/list" ||
     message.method === "resources/list" ||
+    message.method === "resources/templates/list" ||
     message.method === "resources/read" ||
     message.method === "prompts/list" ||
     message.method === "prompts/get"
@@ -389,13 +415,20 @@ export class McpBridge {
       }
 
       try {
+        const headers: Record<string, string> = {
+          Authorization: `Bearer ${this.config.token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        };
+        if (this.config.domains) {
+          headers["X-Resetcamp-Mcp-Domains"] = this.config.domains;
+        }
+        if (this.config.readOnly) {
+          headers["X-Resetcamp-Mcp-Read-Only"] = "true";
+        }
         const response = await this.fetchFn(this.messagesUrl(), {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${this.config.token}`,
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
+          headers,
           body: JSON.stringify(message),
           signal: this.abortController.signal,
         });
